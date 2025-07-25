@@ -1,5 +1,4 @@
 import { supabase } from "./supabase"
-import bcrypt from "bcryptjs"
 
 export interface SignUpData {
   email: string
@@ -16,24 +15,34 @@ export interface LoginData {
   password: string
 }
 
+// Simple hash function for demo purposes (in production, use proper server-side hashing)
+function simpleHash(password: string): string {
+  let hash = 0
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i)
+    hash = (hash << 5) - hash + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return hash.toString()
+}
+
 export async function signUp(data: SignUpData) {
   try {
-    // Hash the password
-    const saltRounds = 10
-    const passwordHash = await bcrypt.hash(data.password, saltRounds)
+    // Hash the password (simplified for demo)
+    const passwordHash = simpleHash(data.password)
 
     // Validate company key for recruiters
     if (data.userType === "recruiter" && data.companyKey) {
-      const { data: validKey } = await supabase
+      const { data: validKeys } = await supabase
         .from("recruiter_profiles")
         .select("company_key, company")
         .eq("company_key", data.companyKey)
-        .single()
 
-      if (!validKey) {
+      if (!validKeys || validKeys.length === 0) {
         throw new Error("Invalid company key")
       }
 
+      const validKey = validKeys[0]
       if (validKey.company.toLowerCase() !== data.company?.toLowerCase()) {
         throw new Error("Company name does not match the provided key")
       }
@@ -86,9 +95,9 @@ export async function login(data: LoginData) {
       throw new Error("Invalid email or password")
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(data.password, user.password_hash)
-    if (!isValidPassword) {
+    // Verify password (simplified for demo)
+    const hashedPassword = simpleHash(data.password)
+    if (hashedPassword !== user.password_hash) {
       throw new Error("Invalid email or password")
     }
 

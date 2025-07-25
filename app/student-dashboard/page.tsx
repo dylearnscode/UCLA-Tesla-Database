@@ -26,6 +26,7 @@ export default function StudentDashboard() {
     phone: "",
     location: "",
   })
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -44,23 +45,29 @@ export default function StudentDashboard() {
       setUser(currentUser)
 
       // Load student profile from Supabase
-      const { data: studentProfile } = await supabase
-        .from("student_profiles")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .single()
+      try {
+        const { data: studentProfile } = await supabase
+          .from("student_profiles")
+          .select("*")
+          .eq("user_id", currentUser.id)
+          .single()
 
-      if (studentProfile) {
-        setProfile({
-          major: studentProfile.major || "",
-          gpa: studentProfile.gpa?.toString() || "",
-          graduationYear: studentProfile.graduation_year || "",
-          skills: studentProfile.skills || "",
-          experience: studentProfile.experience || "",
-          projects: studentProfile.projects || "",
-          phone: studentProfile.phone || "",
-          location: studentProfile.location || "",
-        })
+        if (studentProfile) {
+          setProfile({
+            major: studentProfile.major || "",
+            gpa: studentProfile.gpa?.toString() || "",
+            graduationYear: studentProfile.graduation_year || "",
+            skills: studentProfile.skills || "",
+            experience: studentProfile.experience || "",
+            projects: studentProfile.projects || "",
+            phone: studentProfile.phone || "",
+            location: studentProfile.location || "",
+          })
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -78,7 +85,9 @@ export default function StudentDashboard() {
   }
 
   const saveProfile = async () => {
-    if (user) {
+    if (!user) return
+
+    try {
       const { error } = await supabase
         .from("student_profiles")
         .update({
@@ -99,11 +108,24 @@ export default function StudentDashboard() {
       } else {
         alert("Profile saved successfully!")
       }
+    } catch (error) {
+      alert("Error saving profile")
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!user) {
-    return <div>Loading...</div>
+    return null
   }
 
   return (
@@ -123,8 +145,8 @@ export default function StudentDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
-                <p className="text-xs text-gray-500">{user.school}</p>
+                <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
+                <p className="text-xs text-gray-500">{user.profile?.school || "UCLA"}</p>
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
@@ -143,16 +165,16 @@ export default function StudentDashboard() {
               <CardHeader className="text-center">
                 <Avatar className="h-20 w-20 mx-auto mb-4">
                   <AvatarFallback className="text-lg">
-                    {user.fullName
+                    {user.full_name
                       .split(" ")
                       .map((n: string) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
-                <CardTitle>{user.fullName}</CardTitle>
+                <CardTitle>{user.full_name}</CardTitle>
                 <CardDescription>{user.email}</CardDescription>
                 <Badge variant="secondary" className="mt-2">
-                  {user.school}
+                  {user.profile?.school || "UCLA"}
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-4">

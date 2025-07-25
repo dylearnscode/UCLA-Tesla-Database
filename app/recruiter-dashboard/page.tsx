@@ -23,7 +23,6 @@ import { Building2, LogOut, Search, Users, Filter, Mail, Phone, MapPin, Graduati
 import { supabase, markStudentAsHired, getHiringRecords } from "@/lib/supabase"
 import { getCurrentUser, logout } from "@/lib/auth"
 import type { TeslaResumeData, HiringRecord } from "@/lib/supabase"
-import Image from "next/image"
 
 export default function RecruiterDashboard() {
   const [user, setUser] = useState<any>(null)
@@ -41,6 +40,7 @@ export default function RecruiterDashboard() {
     cycle: "",
     notes: "",
   })
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -58,38 +58,44 @@ export default function RecruiterDashboard() {
 
       setUser(currentUser)
 
-      // Load students with profiles from Supabase
-      const { data: users } = await supabase
-        .from("users")
-        .select(`
-          *,
-          student_profiles (*)
-        `)
-        .eq("user_type", "student")
+      try {
+        // Load students with profiles from Supabase
+        const { data: users } = await supabase
+          .from("users")
+          .select(`
+            *,
+            student_profiles (*)
+          `)
+          .eq("user_type", "student")
 
-      if (users) {
-        const studentsWithProfiles = users.map((user: any) => ({
-          ...user,
-          profile: user.student_profiles[0] || {},
-        }))
-        setStudents(studentsWithProfiles)
-        setFilteredStudents(studentsWithProfiles)
-      }
+        if (users) {
+          const studentsWithProfiles = users.map((user: any) => ({
+            ...user,
+            profile: user.student_profiles?.[0] || {},
+          }))
+          setStudents(studentsWithProfiles)
+          setFilteredStudents(studentsWithProfiles)
+        }
 
-      // Load Tesla resume data
-      const { data: teslaResumeData } = await supabase
-        .from("tesla_resume_data")
-        .select("*")
-        .order("submission_time", { ascending: false })
+        // Load Tesla resume data
+        const { data: teslaResumeData } = await supabase
+          .from("tesla_resume_data")
+          .select("*")
+          .order("submission_time", { ascending: false })
 
-      if (teslaResumeData) {
-        setTeslaData(teslaResumeData)
-      }
+        if (teslaResumeData) {
+          setTeslaData(teslaResumeData)
+        }
 
-      // Load hiring records
-      const { data: hiringData } = await getHiringRecords(currentUser.id)
-      if (hiringData) {
-        setHiringRecords(hiringData)
+        // Load hiring records
+        const { data: hiringData } = await getHiringRecords(currentUser.id)
+        if (hiringData) {
+          setHiringRecords(hiringData)
+        }
+      } catch (error) {
+        console.error("Error loading data:", error)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -103,22 +109,22 @@ export default function RecruiterDashboard() {
     if (searchTerm) {
       filtered = filtered.filter(
         (student) =>
-          student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (student.profile.major && student.profile.major.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (student.profile.skills && student.profile.skills.toLowerCase().includes(searchTerm.toLowerCase())),
+          student.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (student.profile?.major && student.profile.major.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (student.profile?.skills && student.profile.skills.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     }
 
     // School filter
     if (schoolFilter !== "all") {
-      filtered = filtered.filter((student) => student.school === schoolFilter)
+      filtered = filtered.filter((student) => student.profile?.school === schoolFilter)
     }
 
     // Major filter
     if (majorFilter !== "all") {
       filtered = filtered.filter(
-        (student) => student.profile.major && student.profile.major.toLowerCase().includes(majorFilter.toLowerCase()),
+        (student) => student.profile?.major && student.profile.major.toLowerCase().includes(majorFilter.toLowerCase()),
       )
     }
 
@@ -142,8 +148,8 @@ export default function RecruiterDashboard() {
       setSelectedStudent({
         email: student.email,
         full_name: student.full_name,
-        major: student.profile.major,
-        cycles_available: student.profile.cycles_available,
+        major: student.profile?.major,
+        cycles_available: student.profile?.cycles_available,
       })
     }
     setHiringDialogOpen(true)
@@ -152,28 +158,32 @@ export default function RecruiterDashboard() {
   const submitHiring = async () => {
     if (!selectedStudent || !user) return
 
-    const { error } = await markStudentAsHired({
-      studentEmail: selectedStudent.email,
-      studentName: selectedStudent.full_name,
-      recruiterId: user.id,
-      company: user.company,
-      positionTitle: hiringForm.positionTitle,
-      cycle: hiringForm.cycle,
-      notes: hiringForm.notes,
-    })
+    try {
+      const { error } = await markStudentAsHired({
+        studentEmail: selectedStudent.email,
+        studentName: selectedStudent.full_name,
+        recruiterId: user.id,
+        company: user.profile?.company || user.company,
+        positionTitle: hiringForm.positionTitle,
+        cycle: hiringForm.cycle,
+        notes: hiringForm.notes,
+      })
 
-    if (error) {
-      alert("Error marking student as hired: " + error.message)
-    } else {
-      alert("Student marked as hired successfully!")
-      setHiringDialogOpen(false)
-      setHiringForm({ positionTitle: "", cycle: "", notes: "" })
+      if (error) {
+        alert("Error marking student as hired: " + error.message)
+      } else {
+        alert("Student marked as hired successfully!")
+        setHiringDialogOpen(false)
+        setHiringForm({ positionTitle: "", cycle: "", notes: "" })
 
-      // Refresh hiring records
-      const { data: hiringData } = await getHiringRecords(user.id)
-      if (hiringData) {
-        setHiringRecords(hiringData)
+        // Refresh hiring records
+        const { data: hiringData } = await getHiringRecords(user.id)
+        if (hiringData) {
+          setHiringRecords(hiringData)
+        }
       }
+    } catch (error) {
+      alert("Error marking student as hired")
     }
   }
 
@@ -181,8 +191,19 @@ export default function RecruiterDashboard() {
     return hiringRecords.some((record) => record.student_email === studentEmail && record.status === "hired")
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!user) {
-    return <div>Loading...</div>
+    return null
   }
 
   return (
@@ -203,7 +224,7 @@ export default function RecruiterDashboard() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
-                <p className="text-xs text-gray-500">{user.company}</p>
+                <p className="text-xs text-gray-500">{user.profile?.company || "Company"}</p>
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
@@ -314,9 +335,9 @@ export default function RecruiterDashboard() {
                             <Avatar>
                               <AvatarFallback>
                                 {student.full_name
-                                  .split(" ")
+                                  ?.split(" ")
                                   .map((n: string) => n[0])
-                                  .join("")}
+                                  .join("") || "?"}
                               </AvatarFallback>
                             </Avatar>
                             <div>
@@ -332,11 +353,11 @@ export default function RecruiterDashboard() {
                           )}
                         </div>
                         <Badge variant="outline" className="w-fit">
-                          {student.school}
+                          {student.profile?.school || "UCLA"}
                         </Badge>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {student.profile.major && (
+                        {student.profile?.major && (
                           <div className="flex items-center space-x-2 text-sm">
                             <GraduationCap className="h-4 w-4 text-gray-500" />
                             <span>{student.profile.major}</span>
@@ -348,27 +369,27 @@ export default function RecruiterDashboard() {
                           </div>
                         )}
 
-                        {student.profile.phone && (
+                        {student.profile?.phone && (
                           <div className="flex items-center space-x-2 text-sm text-gray-600">
                             <Phone className="h-4 w-4" />
                             <span>{student.profile.phone}</span>
                           </div>
                         )}
 
-                        {student.profile.location && (
+                        {student.profile?.location && (
                           <div className="flex items-center space-x-2 text-sm text-gray-600">
                             <MapPin className="h-4 w-4" />
                             <span>{student.profile.location}</span>
                           </div>
                         )}
 
-                        {student.profile.graduation_year && (
+                        {student.profile?.graduation_year && (
                           <div className="text-sm text-gray-600">
                             <strong>Graduation:</strong> {student.profile.graduation_year}
                           </div>
                         )}
 
-                        {student.profile.skills && (
+                        {student.profile?.skills && (
                           <div className="text-sm">
                             <strong className="text-gray-900">Skills:</strong>
                             <p className="text-gray-600 mt-1 line-clamp-2">{student.profile.skills}</p>
@@ -408,8 +429,8 @@ export default function RecruiterDashboard() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <div className="relative w-6 h-6">
-                    <Image src="/images/tesla-logo.png" alt="Tesla" fill className="object-contain" />
+                  <div className="w-6 h-6 bg-red-600 rounded flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">T</span>
                   </div>
                   <span>Tesla Resume Database</span>
                 </CardTitle>

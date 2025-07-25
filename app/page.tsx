@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { GraduationCap, Building2, Loader2 } from "lucide-react"
 import { signUp, login, getCurrentUser } from "@/lib/auth"
-import Image from "next/image"
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -134,12 +134,12 @@ export default function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center space-x-4 mb-4">
-            <div className="relative w-16 h-12">
-              <Image src="/images/ucla-logo.png" alt="UCLA Logo" fill className="object-contain" />
+            <div className="w-16 h-12 bg-blue-600 rounded flex items-center justify-center">
+              <span className="text-white font-bold text-lg">UCLA</span>
             </div>
             <div className="text-2xl font-bold text-gray-400">×</div>
-            <div className="relative w-12 h-12">
-              <Image src="/images/tesla-logo.png" alt="Tesla Logo" fill className="object-contain" />
+            <div className="w-12 h-12 bg-red-600 rounded flex items-center justify-center">
+              <span className="text-white font-bold text-xs">T</span>
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">UCLA Recruitment Platform</CardTitle>
@@ -285,6 +285,11 @@ export default function AuthPage() {
                           <SelectItem value="Apple">Apple</SelectItem>
                           <SelectItem value="Microsoft">Microsoft</SelectItem>
                           <SelectItem value="Meta">Meta</SelectItem>
+                          <SelectItem value="Amazon">Amazon</SelectItem>
+                          <SelectItem value="Netflix">Netflix</SelectItem>
+                          <SelectItem value="Uber">Uber</SelectItem>
+                          <SelectItem value="Airbnb">Airbnb</SelectItem>
+                          <SelectItem value="SpaceX">SpaceX</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -302,7 +307,7 @@ export default function AuthPage() {
                       <p className="text-xs text-gray-500">
                         Contact your HR department for your company's sign-in key
                         <br />
-                        <strong>Demo keys:</strong> Tesla: d74hf8e09, Google: g83kf9d02
+                        <strong>Demo keys:</strong> Tesla: d74hf8e09, Google: g83kf9d02, Apple: a92jd8f73
                       </p>
                     </div>
                   </>
