@@ -78,7 +78,6 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        // Login logic
         const { user, error: loginError } = await login({
           email: formData.email,
           password: formData.password,
@@ -98,7 +97,6 @@ export default function AuthPage() {
           router.push("/recruiter-dashboard")
         }
       } else {
-        // Sign up logic
         const { user, error: signUpError } = await signUp({
           email: formData.email,
           password: formData.password,
@@ -130,24 +128,26 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center items-center space-x-4 mb-4">
-            <div className="w-16 h-12 bg-blue-600 rounded flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl border-0">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center items-center space-x-4">
+            <div className="w-16 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-lg">UCLA</span>
             </div>
-            <div className="text-2xl font-bold text-gray-400">×</div>
-            <div className="w-12 h-12 bg-red-600 rounded flex items-center justify-center">
+            <div className="text-2xl font-light text-slate-400">×</div>
+            <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-xs">T</span>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">UCLA Recruitment Platform</CardTitle>
-          <CardDescription>Connect UCLA students with top recruiters</CardDescription>
+          <div>
+            <CardTitle className="text-2xl font-semibold text-slate-900">UCLA Recruitment Platform</CardTitle>
+            <CardDescription className="text-slate-600 mt-2">Connect UCLA students with top recruiters</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={isLogin ? "login" : "signup"} onValueChange={(value) => setIsLogin(value === "login")}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
@@ -155,7 +155,9 @@ export default function AuthPage() {
             <TabsContent value="login">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -164,10 +166,13 @@ export default function AuthPage() {
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     required
                     disabled={loading}
+                    className="h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </Label>
                   <Input
                     id="password"
                     type="password"
@@ -175,10 +180,11 @@ export default function AuthPage() {
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     required
                     disabled={loading}
+                    className="h-11"
                   />
                 </div>
-                {error && <p className="text-sm text-red-600">{error}</p>}
-                <Button type="submit" className="w-full" disabled={loading}>
+                {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
+                <Button type="submit" className="w-full h-11 bg-slate-900 hover:bg-slate-800" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -194,7 +200,7 @@ export default function AuthPage() {
             <TabsContent value="signup">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-3">
-                  <Label>I am a:</Label>
+                  <Label className="text-sm font-medium">I am a:</Label>
                   <RadioGroup
                     value={userType}
                     onValueChange={(value: "student" | "recruiter") => setUserType(value)}
@@ -219,7 +225,9 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName" className="text-sm font-medium">
+                    Full Name
+                  </Label>
                   <Input
                     id="fullName"
                     placeholder="John Doe"
@@ -227,11 +235,14 @@ export default function AuthPage() {
                     onChange={(e) => handleInputChange("fullName", e.target.value)}
                     required
                     disabled={loading}
+                    className="h-11"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email Address
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -240,11 +251,14 @@ export default function AuthPage() {
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     required
                     disabled={loading}
+                    className="h-11"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </Label>
                   <Input
                     id="password"
                     type="password"
@@ -252,14 +266,17 @@ export default function AuthPage() {
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     required
                     disabled={loading}
+                    className="h-11"
                   />
                 </div>
 
                 {userType === "student" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="school">School</Label>
+                    <Label htmlFor="school" className="text-sm font-medium">
+                      School
+                    </Label>
                     <Select onValueChange={(value) => handleInputChange("school", value)} disabled={loading}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select your school" />
                       </SelectTrigger>
                       <SelectContent>
@@ -274,9 +291,11 @@ export default function AuthPage() {
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="company">Company</Label>
+                      <Label htmlFor="company" className="text-sm font-medium">
+                        Company
+                      </Label>
                       <Select onValueChange={(value) => handleInputChange("company", value)} disabled={loading}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11">
                           <SelectValue placeholder="Select your company" />
                         </SelectTrigger>
                         <SelectContent>
@@ -294,7 +313,9 @@ export default function AuthPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="companyKey">Company 9-Digit Sign-in Key</Label>
+                      <Label htmlFor="companyKey" className="text-sm font-medium">
+                        Company 9-Digit Sign-in Key
+                      </Label>
                       <Input
                         id="companyKey"
                         placeholder="d74hf8e09"
@@ -303,19 +324,18 @@ export default function AuthPage() {
                         onChange={(e) => handleInputChange("companyKey", e.target.value)}
                         required
                         disabled={loading}
+                        className="h-11 font-mono"
                       />
-                      <p className="text-xs text-gray-500">
-                        Contact your HR department for your company's sign-in key
-                        <br />
+                      <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-md">
                         <strong>Demo keys:</strong> Tesla: d74hf8e09, Google: g83kf9d02, Apple: a92jd8f73
                       </p>
                     </div>
                   </>
                 )}
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full h-11 bg-slate-900 hover:bg-slate-800" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
