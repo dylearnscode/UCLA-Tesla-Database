@@ -11,8 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { GraduationCap, Building2, Loader2 } from "lucide-react"
-import { signUp, login, getCurrentUser } from "@/lib/auth"
+import { GraduationCap, Building2 } from "lucide-react"
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -26,14 +25,14 @@ export default function AuthPage() {
     companyKey: "",
   })
   const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     // Check if user is already logged in
-    const user = getCurrentUser()
+    const user = localStorage.getItem("currentUser")
     if (user) {
-      if (user.user_type === "student") {
+      const userData = JSON.parse(user)
+      if (userData.type === "student") {
         router.push("/student-dashboard")
       } else {
         router.push("/recruiter-dashboard")
@@ -49,71 +48,71 @@ export default function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setLoading(true)
 
     // Basic validation
     if (!formData.email || !formData.password) {
       setError("Email and password are required")
-      setLoading(false)
       return
     }
 
     if (!isLogin) {
       if (userType === "student" && (!formData.fullName || !formData.school)) {
         setError("Please fill in all required fields")
-        setLoading(false)
         return
       }
       if (userType === "recruiter" && (!formData.fullName || !formData.company || !formData.companyKey)) {
         setError("Please fill in all required fields")
-        setLoading(false)
         return
       }
       if (userType === "recruiter" && formData.companyKey.length !== 9) {
         setError("Company key must be exactly 9 characters")
-        setLoading(false)
         return
       }
     }
 
     try {
       if (isLogin) {
-        const { user, error: loginError } = await login({
-          email: formData.email,
-          password: formData.password,
-        })
+        // Login logic
+        const users = JSON.parse(localStorage.getItem("users") || "[]")
+        const user = users.find((u: any) => u.email === formData.email && u.password === formData.password)
 
-        if (loginError) {
-          setError(loginError.message)
-          setLoading(false)
+        if (!user) {
+          setError("Invalid email or password")
           return
         }
 
         localStorage.setItem("currentUser", JSON.stringify(user))
 
-        if (user?.user_type === "student") {
+        if (user.type === "student") {
           router.push("/student-dashboard")
         } else {
           router.push("/recruiter-dashboard")
         }
       } else {
-        const { user, error: signUpError } = await signUp({
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
-          userType,
-          school: formData.school,
-          company: formData.company,
-          companyKey: formData.companyKey,
-        })
+        // Sign up logic
+        const users = JSON.parse(localStorage.getItem("users") || "[]")
+        const existingUser = users.find((u: any) => u.email === formData.email)
 
-        if (signUpError) {
-          setError(signUpError.message)
-          setLoading(false)
+        if (existingUser) {
+          setError("User with this email already exists")
           return
         }
 
-        localStorage.setItem("currentUser", JSON.stringify(user))
+        const newUser = {
+          id: Date.now().toString(),
+          email: formData.email,
+          password: formData.password,
+          type: userType,
+          fullName: formData.fullName,
+          ...(userType === "student"
+            ? { school: formData.school }
+            : { company: formData.company, companyKey: formData.companyKey }),
+          createdAt: new Date().toISOString(),
+        }
+
+        users.push(newUser)
+        localStorage.setItem("users", JSON.stringify(users))
+        localStorage.setItem("currentUser", JSON.stringify(newUser))
 
         if (userType === "student") {
           router.push("/student-dashboard")
@@ -123,31 +122,24 @@ export default function AuthPage() {
       }
     } catch (error) {
       setError("An error occurred. Please try again.")
-      setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl border-0">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center items-center space-x-4">
-            <div className="w-16 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-lg">UCLA</span>
-            </div>
-            <div className="text-2xl font-light text-slate-400">×</div>
-            <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-xs">T</span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="bg-blue-600 p-3 rounded-full">
+              <GraduationCap className="h-8 w-8 text-white" />
             </div>
           </div>
-          <div>
-            <CardTitle className="text-2xl font-semibold text-slate-900">UCLA Recruitment Platform</CardTitle>
-            <CardDescription className="text-slate-600 mt-2">Connect UCLA students with top recruiters</CardDescription>
-          </div>
+          <CardTitle className="text-2xl font-bold">UCLA Recruitment Platform</CardTitle>
+          <CardDescription>Connect UCLA students with top recruiters</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={isLogin ? "login" : "signup"} onValueChange={(value) => setIsLogin(value === "login")}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
@@ -155,9 +147,7 @@ export default function AuthPage() {
             <TabsContent value="login">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -165,34 +155,21 @@ export default function AuthPage() {
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     required
-                    disabled={loading}
-                    className="h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </Label>
+                  <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     required
-                    disabled={loading}
-                    className="h-11"
                   />
                 </div>
-                {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
-                <Button type="submit" className="w-full h-11 bg-slate-900 hover:bg-slate-800" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login"
-                  )}
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <Button type="submit" className="w-full">
+                  Login
                 </Button>
               </form>
             </TabsContent>
@@ -200,12 +177,11 @@ export default function AuthPage() {
             <TabsContent value="signup">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">I am a:</Label>
+                  <Label>I am a:</Label>
                   <RadioGroup
                     value={userType}
                     onValueChange={(value: "student" | "recruiter") => setUserType(value)}
                     className="flex space-x-6"
-                    disabled={loading}
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="student" id="student" />
@@ -225,24 +201,18 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm font-medium">
-                    Full Name
-                  </Label>
+                  <Label htmlFor="fullName">Full Name</Label>
                   <Input
                     id="fullName"
                     placeholder="John Doe"
                     value={formData.fullName}
                     onChange={(e) => handleInputChange("fullName", e.target.value)}
                     required
-                    disabled={loading}
-                    className="h-11"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email Address
-                  </Label>
+                  <Label htmlFor="email">Email Address</Label>
                   <Input
                     id="email"
                     type="email"
@@ -250,72 +220,50 @@ export default function AuthPage() {
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     required
-                    disabled={loading}
-                    className="h-11"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </Label>
+                  <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     required
-                    disabled={loading}
-                    className="h-11"
                   />
                 </div>
 
                 {userType === "student" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="school" className="text-sm font-medium">
-                      School
-                    </Label>
-                    <Select onValueChange={(value) => handleInputChange("school", value)} disabled={loading}>
-                      <SelectTrigger className="h-11">
+                    <Label htmlFor="school">School</Label>
+                    <Select onValueChange={(value) => handleInputChange("school", value)}>
+                      <SelectTrigger>
                         <SelectValue placeholder="Select your school" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="UCLA School of Engineering">UCLA School of Engineering</SelectItem>
-                        <SelectItem value="UCLA Computer Science">UCLA Computer Science</SelectItem>
-                        <SelectItem value="UCLA Applied Mathematics">UCLA Applied Mathematics</SelectItem>
-                        <SelectItem value="UCLA Physics & Astronomy">UCLA Physics & Astronomy</SelectItem>
-                        <SelectItem value="Other UCLA School">Other UCLA School</SelectItem>
+                        <SelectItem value="engineering">UCLA School of Engineering</SelectItem>
+                        <SelectItem value="cs">UCLA Computer Science</SelectItem>
+                        <SelectItem value="applied-math">UCLA Applied Mathematics</SelectItem>
+                        <SelectItem value="physics">UCLA Physics & Astronomy</SelectItem>
+                        <SelectItem value="other">Other UCLA School</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="company" className="text-sm font-medium">
-                        Company
-                      </Label>
-                      <Select onValueChange={(value) => handleInputChange("company", value)} disabled={loading}>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Select your company" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Tesla">Tesla</SelectItem>
-                          <SelectItem value="Google">Google</SelectItem>
-                          <SelectItem value="Apple">Apple</SelectItem>
-                          <SelectItem value="Microsoft">Microsoft</SelectItem>
-                          <SelectItem value="Meta">Meta</SelectItem>
-                          <SelectItem value="Amazon">Amazon</SelectItem>
-                          <SelectItem value="Netflix">Netflix</SelectItem>
-                          <SelectItem value="Uber">Uber</SelectItem>
-                          <SelectItem value="Airbnb">Airbnb</SelectItem>
-                          <SelectItem value="SpaceX">SpaceX</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="company">Company</Label>
+                      <Input
+                        id="company"
+                        placeholder="Google, Apple, Microsoft, etc."
+                        value={formData.company}
+                        onChange={(e) => handleInputChange("company", e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="companyKey" className="text-sm font-medium">
-                        Company 9-Digit Sign-in Key
-                      </Label>
+                      <Label htmlFor="companyKey">Company 9-Digit Sign-in Key</Label>
                       <Input
                         id="companyKey"
                         placeholder="d74hf8e09"
@@ -323,27 +271,16 @@ export default function AuthPage() {
                         value={formData.companyKey}
                         onChange={(e) => handleInputChange("companyKey", e.target.value)}
                         required
-                        disabled={loading}
-                        className="h-11 font-mono"
                       />
-                      <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-md">
-                        <strong>Demo keys:</strong> Tesla: d74hf8e09, Google: g83kf9d02, Apple: a92jd8f73
-                      </p>
+                      <p className="text-xs text-gray-500">Contact your HR department for your company's sign-in key</p>
                     </div>
                   </>
                 )}
 
-                {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
+                {error && <p className="text-sm text-red-600">{error}</p>}
 
-                <Button type="submit" className="w-full h-11 bg-slate-900 hover:bg-slate-800" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
+                <Button type="submit" className="w-full">
+                  Create Account
                 </Button>
               </form>
             </TabsContent>
